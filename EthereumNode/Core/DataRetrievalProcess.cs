@@ -17,11 +17,6 @@ namespace EthereumNode.Core
             this.nodeTimeoutMinutes = nodeTimeoutMinutes;
         }
 
-        public async Task<RpcRequestResult> GetGasPriceAsync(JsonRpcRequest jsonRpcRequest)
-        {
-            return await GetGasPriceFromNodesParallel(jsonRpcRequest);
-        }
-
         public async void CheckForPenalityAsync(JsonRpcRequest jsonRpcRequest)
         {
             var results = await GetGasFromNodesAsync(jsonRpcRequest);
@@ -40,7 +35,7 @@ namespace EthereumNode.Core
             }
         }
 
-        private async Task<RpcRequestResult> GetGasPriceFromNodesParallel(JsonRpcRequest jsonRpcRequest)
+        public async Task<RpcRequestResult> GetGasPriceAsync(JsonRpcRequest jsonRpcRequest)
         {
             var tasks = nodeUrls.Select(node => GetGasFromNode(node, jsonRpcRequest)).ToList();
 
@@ -85,6 +80,6 @@ namespace EthereumNode.Core
                 };
             else
                 return null;
-        }
+            }
     }
 }
