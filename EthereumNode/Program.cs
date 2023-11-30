@@ -7,7 +7,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.Configure<EthereumNodeConfig>(builder.Configuration.GetSection("EthereumNodeConfig"));
-
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

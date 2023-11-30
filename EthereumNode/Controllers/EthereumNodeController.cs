@@ -14,7 +14,7 @@ namespace EthereumNode.Controllers
 
         public EthereumNodeController(IOptions<EthereumNodeConfig> ethereumNodeConfig)
         {
-            dataRetrievalProcess = new DataRetrievalProcess(ethereumNodeConfig.Value.NodeUrls);
+            dataRetrievalProcess = new DataRetrievalProcess(ethereumNodeConfig.Value.NodeUrls, ethereumNodeConfig.Value.NodeTimeoutMinutes);
         }
 
         [HttpPost]
@@ -22,6 +22,7 @@ namespace EthereumNode.Controllers
         public async Task<IActionResult> GetGasPrice([FromBody] JsonRpcRequest jsonRpcRequest)
         {  
             var response = await dataRetrievalProcess.GetGasPrice(jsonRpcRequest);
+            dataRetrievalProcess.CheckForPenality(jsonRpcRequest);
             return Ok(response);
         }
     }

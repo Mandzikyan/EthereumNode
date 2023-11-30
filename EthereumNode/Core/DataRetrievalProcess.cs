@@ -1,23 +1,40 @@
-﻿using Newtonsoft.Json;
-using EthereumNode.Models;
-using System.Text;
+﻿using EthereumNode.Models;
+using Nethereum.JsonRpc.Client;
+using Nethereum.Web3;
 
 namespace EthereumNode.Core
 {
     public class DataRetrievalProcess
     {
         private readonly List<string> nodeUrls;
-        private readonly HttpClient client;
-
-        public DataRetrievalProcess(List<string> nodeUrls)
+        private List<string> blackList;
+        private readonly int nodeTimeoutMinutes;
+        public DataRetrievalProcess(List<string> nodeUrls,int nodeTimeoutMinutes)
         {
             this.nodeUrls = nodeUrls;
-            client = new HttpClient();
+            blackList = new List<string>();
+            this.nodeTimeoutMinutes = nodeTimeoutMinutes;
         }
         public async Task<RpcRequestResult> GetGasPrice(JsonRpcRequest jsonRpcRequest)
         {
             return await GetGasPriceFromNodesParallel(jsonRpcRequest);
+        }
+        public async void CheckForPenality(JsonRpcRequest jsonRpcRequest)
+        {
+            var results = await GetGasFromNodes(jsonRpcRequest);
+            if (results.Count == nodeUrls.Count)
+            {
+                var distinctGasPrices = results.Where(r => r != null).Select(r => r.Response.Result).Distinct().ToList();
 
+                if (!(distinctGasPrices.Count == 1))
+                {
+                    var nonMatchingUrl = results.Where(r => !distinctGasPrices.Contains(r.Response.Result))
+                                                 .Select(r => r.Url)
+                                                 .ToList();
+                    blackList.Clear();
+                    blackList.AddRange(nonMatchingUrl);
+                }
+            }
         }
         private async Task<RpcRequestResult> GetGasPriceFromNodesParallel(JsonRpcRequest jsonRpcRequest)
         {
@@ -28,8 +45,8 @@ namespace EthereumNode.Core
                 var completedTask = await Task.WhenAny(tasks);
                 tasks.Remove(completedTask);
 
-                if (!completedTask.IsFaulted)                
-                    return completedTask.Result;                
+                if (!(completedTask == null && blackList.Contains(completedTask.Result.Url)))
+                    return completedTask.Result;
             }
             return null;
         }
@@ -40,22 +57,29 @@ namespace EthereumNode.Core
             return tasks.Select(t => t.Result).ToList();
         }
 
-        private async Task<RpcRequestResult> GetGasFromNode(string nodeUrl, JsonRpcRequest jsonRpcRequest)
+        private async  Task<RpcRequestResult> GetGasFromNode(string nodeUrl, JsonRpcRequest jsonRpcRequest)
         {
-            var jsonPayload = JsonConvert.SerializeObject(jsonRpcRequest);
-            var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+            var web3 = new Web3(nodeUrl);
+            var timeoutTask = Task.Delay(TimeSpan.FromMinutes(nodeTimeoutMinutes));
+            var gasPrice = web3.Eth.GasPrice.SendRequestAsync();
+            var completedTask = await Task.WhenAny(gasPrice, timeoutTask);
 
-            var response = await client.PostAsync(nodeUrl, content);
-
-            if (response.IsSuccessStatusCode)
-                return  new RpcRequestResult()
+            if (completedTask == timeoutTask)
+            {
+                blackList.Add(nodeUrl);
+                return null;
+            }
+            if (gasPrice != null)
+                return new RpcRequestResult()
                 {
-                    Response = JsonConvert.DeserializeObject<JsonRpcResponse>(await response.Content.ReadAsStringAsync()),
-                    Url = nodeUrl,
-                };
+                    Response = new JsonRpcResponse()
+                    {
+                        Result = gasPrice.Result,
+                    },
+                    Url = nodeUrl
+                };            
             else
-                return new RpcRequestResult();
+                return null;
         }
-
     }
 }
