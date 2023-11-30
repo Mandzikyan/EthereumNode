@@ -21,8 +21,8 @@ namespace EthereumNode.Controllers
         [Route("eth_gasPrice")]
         public async Task<IActionResult> GetGasPrice([FromBody] JsonRpcRequest jsonRpcRequest)
         {  
-            var response = await dataRetrievalProcess.GetGasPrice(jsonRpcRequest);
-            dataRetrievalProcess.CheckForPenality(jsonRpcRequest);
+            var response = await dataRetrievalProcess.GetGasPriceAsync(jsonRpcRequest);
+            await Task.Run(() => dataRetrievalProcess.CheckForPenalityAsync(jsonRpcRequest));
             return Ok(response);
         }
     }

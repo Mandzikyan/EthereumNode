@@ -9,19 +9,22 @@ namespace EthereumNode.Core
         private readonly List<string> nodeUrls;
         private List<string> blackList;
         private readonly int nodeTimeoutMinutes;
-        public DataRetrievalProcess(List<string> nodeUrls,int nodeTimeoutMinutes)
+
+        public DataRetrievalProcess(List<string> nodeUrls, int nodeTimeoutMinutes)
         {
             this.nodeUrls = nodeUrls;
             blackList = new List<string>();
             this.nodeTimeoutMinutes = nodeTimeoutMinutes;
         }
-        public async Task<RpcRequestResult> GetGasPrice(JsonRpcRequest jsonRpcRequest)
+
+        public async Task<RpcRequestResult> GetGasPriceAsync(JsonRpcRequest jsonRpcRequest)
         {
             return await GetGasPriceFromNodesParallel(jsonRpcRequest);
         }
-        public async void CheckForPenality(JsonRpcRequest jsonRpcRequest)
+
+        public async void CheckForPenalityAsync(JsonRpcRequest jsonRpcRequest)
         {
-            var results = await GetGasFromNodes(jsonRpcRequest);
+            var results = await GetGasFromNodesAsync(jsonRpcRequest);
             if (results.Count == nodeUrls.Count)
             {
                 var distinctGasPrices = results.Where(r => r != null).Select(r => r.Response.Result).Distinct().ToList();
@@ -36,6 +39,7 @@ namespace EthereumNode.Core
                 }
             }
         }
+
         private async Task<RpcRequestResult> GetGasPriceFromNodesParallel(JsonRpcRequest jsonRpcRequest)
         {
             var tasks = nodeUrls.Select(node => GetGasFromNode(node, jsonRpcRequest)).ToList();
@@ -50,14 +54,15 @@ namespace EthereumNode.Core
             }
             return null;
         }
-        private async Task<List<RpcRequestResult>> GetGasFromNodes(JsonRpcRequest jsonRpcRequest)
+
+        private async Task<List<RpcRequestResult>> GetGasFromNodesAsync(JsonRpcRequest jsonRpcRequest)
         {
             var tasks = nodeUrls.Select(url => GetGasFromNode(url, jsonRpcRequest)).ToList();
             await Task.WhenAll(tasks);
             return tasks.Select(t => t.Result).ToList();
         }
 
-        private async  Task<RpcRequestResult> GetGasFromNode(string nodeUrl, JsonRpcRequest jsonRpcRequest)
+        private async Task<RpcRequestResult> GetGasFromNode(string nodeUrl, JsonRpcRequest jsonRpcRequest)
         {
             var web3 = new Web3(nodeUrl);
             var timeoutTask = Task.Delay(TimeSpan.FromMinutes(nodeTimeoutMinutes));
@@ -77,7 +82,7 @@ namespace EthereumNode.Core
                         Result = gasPrice.Result,
                     },
                     Url = nodeUrl
-                };            
+                };
             else
                 return null;
         }
