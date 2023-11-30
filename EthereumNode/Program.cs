@@ -1,17 +1,15 @@
-using EthereumNode;
+using EthereumNode.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.Configure<EthereumNodeConfiguration>(builder.Configuration.GetSection("EthereumNodeConfiguration"));
+builder.Services.Configure<EthereumNodeConfig>(builder.Configuration.GetSection("EthereumNodeConfig"));
 
 var app = builder.Build();
 
-// Add middleware to the pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -20,7 +18,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthorization();
 
-// Add EthereumController to the controllers
 app.MapControllers();
 
 app.Run();
