@@ -26,11 +26,9 @@ namespace EthereumNode.Core
 
                 if (!(distinctGasPrices.Count == 1))
                 {
-                    var nonMatchingUrl = results.Where(r => !distinctGasPrices.Contains(r.Response.Result))
-                                                 .Select(r => r.Url)
-                                                 .ToList();
+                    var nonMatchingUrl = results.GroupBy(n => n).FirstOrDefault(group => group.Count() == 1).ToString(); 
                     blackList.Clear();
-                    blackList.AddRange(nonMatchingUrl);
+                    blackList.Add(nonMatchingUrl);
                 }
             }
         }
